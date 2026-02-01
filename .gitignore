@@ -13,3 +13,7 @@ __pycache__/
 
 # User-specific
 .vscode/
+
+# Environment variables
+.env
+

@@ -2,20 +2,33 @@
 # Usage: source /app/atcoder_utils.sh
 
 # --- Configuration ---
-TEMPLATE_PATH="/app/templates/atcoder.cpp"
+TEMPLATE_PATH="/app/templates/cpp/main(template).cpp"
 # Compile flags
 CXX_FLAGS="-std=c++20 -DLOCAL"
 
 # --- Helper Functions ---
 
-_check_contest_id() {
-    if [ -z "$1" ]; then
-        echo "Usage: $0 <contest_id> (e.g. abc424)"
-        return 1
+
+_open_editor() {
+    local cmd=""
+    if command -v code &> /dev/null; then
+        cmd="code"
+    elif command -v agy &> /dev/null; then
+        cmd="agy"
+    elif [ -n "$VSCODE_GIT_ASKPASS_NODE" ]; then
+        # Try to derive path from VSCODE env
+        # VSCODE_GIT_ASKPASS_NODE ends with .../bin/<commit>/node
+        # We need .../bin/<commit>/bin/remote-cli/agy
+        local base_dir=$(dirname "$VSCODE_GIT_ASKPASS_NODE")
+        if [ -x "$base_dir/bin/remote-cli/agy" ]; then
+            cmd="$base_dir/bin/remote-cli/agy"
+        fi
+    fi
+
+    if [ -n "$cmd" ]; then
+        "$cmd" -r "${1:-main.cpp}" 2>/dev/null &
     fi
 }
-
-# --- Commands ---
 
 mkc() {
     contest_id=$1
@@ -24,30 +37,48 @@ mkc() {
         return 1
     fi
 
+    # Load credentials from .env
+    if [ -f /app/.env ]; then
+        # Use export variables from .env if in KEY=VALUE format
+        export $(grep -v '^#' /app/.env | xargs)
+    fi
+
     echo "=== Setting up Contest: $contest_id ==="
 
     # 1. Use acc to create the contest directory structure
     if command -v acc &> /dev/null; then
         echo "Running acc new $contest_id..."
-        # Running in a subshell or jumping back might be needed if we want to stay in root, 
-        # but typically users want to go into the directory. 
-        # But acc new creates the directory in the CURRENT dir.
-        # We should probably go to src/atcoder/abc or similar if we want to organize.
-        # However, to be safe and simple, let's just create it where the user is 
-        # OR follow the pattern from abc_dl.sh: src/atcoder/abc/$CONTEST_ID
         
-        # Let's try to stick to the abc_dl.sh pattern if we can, or just current dir.
-        # The user's prompt implies "loading problems", which usually implies downloading.
-        # Let's check if we are in the root or deeper.
-        
-        # If we are at /app, let's try to put it in src/atcoder/abc if it looks like an ABC
+        # Navigate to appropriate directory
         if [[ "$contest_id" =~ ^abc[0-9]+$ ]]; then
              target_base="/app/src/atcoder/abc"
              mkdir -p "$target_base"
              cd "$target_base" || return
         fi
 
-        acc new "$contest_id"
+        # Check if user/pass are set
+        if [ -n "$ATCODER_USERNAME" ] && [ -n "$ATCODER_PASSWORD" ]; then
+             echo "Using credentials from .env..."
+             # Export again to be sure expect sees them (already exported above, but good for clarity)
+             export ATCODER_USERNAME ATCODER_PASSWORD
+             
+             # Use expect to handle prompts
+             # We use $env(VAR) to safely access variables inside expect without shell interpolation issues
+             # We use glob patterns (*...*) to handle potential color codes and variations
+             expect -c "
+                set timeout 30
+                spawn acc new $contest_id
+                expect {
+                    \"*username:*\" { send \"\$env(ATCODER_USERNAME)\r\"; exp_continue }
+                    \"*password:*\" { send \"\$env(ATCODER_PASSWORD)\r\"; exp_continue }
+                    \"*select tasks*\" { send \"\r\"; exp_continue }
+                    eof
+                }
+             "
+        else
+             acc new "$contest_id"
+        fi
+
     else
         echo "Warning: 'acc' command not found. Creating directory manually."
         mkdir -p "$contest_id"
@@ -63,9 +94,6 @@ mkc() {
         for dir in */; do
             problem_dir=${dir%/}
             dest_file="${problem_dir}/main.cpp" 
-            # Note: User's abc_dl.sh used ${CONTEST_ID}_${problem_dir}.cpp, 
-            # but standardizing on main.cpp is often easier for tools. 
-            # I will stick to main.cpp as seen in the active document /app/src/atcoder/abc/abc424/a/main.cpp
             
             if [ ! -f "$dest_file" ]; then
                 if [ -f "$TEMPLATE_PATH" ]; then
@@ -81,7 +109,14 @@ mkc() {
         # Go to 'a' by default
         if [ -d "a" ]; then
             cd "a"
+        # If 'a' doesn't exist (maybe numeric tasks?), just try first dir
+        elif [ -d "A" ]; then
+            cd "A"
         fi
+        
+        # Open editor for main.cpp in current dir
+        _open_editor "main.cpp"
+        
     else
         echo "Error: Contest directory not created."
         return 1
@@ -110,16 +145,42 @@ cptest() {
 
     echo "Running Tests (oj)..."
     if command -v oj &> /dev/null; then
-        # Check if test directory exists
-        if [ ! -d "test" ] && [ ! -d "tests" ]; then
-             echo "Downloading tests..."
-             # We need the URL. acc usually puts it in contest.json or we can guess.
-             # Or we assume the user has already downloaded them via acc new.
-             # If not, 'oj d' might verify login.
-             # Simple fallback: prompt or just run oj t and let it fail/warn.
-             echo "Warning: 'test' directory not found. 'oj t' might fail if tests aren't downloaded."
+        # Check if tests directory exists (acc default is 'tests')
+        TEST_DIR=""
+        if [ -d "tests" ]; then
+            TEST_DIR="tests"
+        elif [ -d "test" ]; then
+            TEST_DIR="test"
         fi
-        oj t -c "./a.out"
+
+        if [ -z "$TEST_DIR" ]; then
+             echo "Tests not found. Downloading..."
+             # Assumes we are in a contest problem directory (e.g. atcoder/abc/abc169/a)
+             # Try to construct URL. acc usually downloads tests, verifying why they are missing.
+             # If manual created or acc failed.
+             
+             # Fallback: prompt implies "reading problems" was done, maybe just not passed to oj?
+             # Let's try to infer URL.
+             # PWD: .../abc169/a
+             prob_char=$(basename "$PWD")
+             contest_dir=$(dirname "$PWD")
+             contest_id=$(basename "$contest_dir")
+             
+             # Basic heuristic for AtCoder URL
+             url="https://atcoder.jp/contests/${contest_id}/tasks/${contest_id}_${prob_char}"
+             echo "Attempting download from $url"
+             oj d "$url"
+             
+             # Re-check
+             if [ -d "tests" ]; then TEST_DIR="tests"; elif [ -d "test" ]; then TEST_DIR="test"; fi
+        fi
+        
+        if [ -n "$TEST_DIR" ]; then
+            oj t -c "./a.out" -d "$TEST_DIR"
+        else
+            # Try running without -d, maybe it just downloaded
+            oj t -c "./a.out"
+        fi
     else
         echo "Error: 'oj' command not found."
     fi
@@ -133,6 +194,7 @@ next() {
         if [ -d "../$next_prob" ]; then
             cd "../$next_prob" || return
             echo "Moved to: $next_prob"
+            _open_editor "main.cpp"
         else
             echo "Next problem ($next_prob) not found."
         fi
@@ -148,6 +210,7 @@ prev() {
         if [ -d "../$prev_prob" ]; then
             cd "../$prev_prob" || return
             echo "Moved to: $prev_prob"
+            _open_editor "main.cpp"
         else
             echo "Prev problem ($prev_prob) not found."
         fi
@@ -165,10 +228,17 @@ goto() {
     if [ -d "../$target" ]; then
         cd "../$target" || return
         echo "Moved to: $target"
+        _open_editor "main.cpp"
     else
         echo "Directory ../$target not found."
     fi
 }
+
+home() {
+    cd "/app/src/atcoder/abc" || return
+    echo "Moved to: $(pwd)"
+}
+
 
 atcoder_help() {
     echo "AtCoder Utils:"
@@ -177,4 +247,5 @@ atcoder_help() {
     echo "  next              : Go to next problem (a -> b)"
     echo "  prev              : Go to previous problem (b -> a)"
     echo "  goto <char>       : Go to specific problem (goto c)"
+    echo "  home              : Go to contest root (/app/src/atcoder/abc)"
 }
