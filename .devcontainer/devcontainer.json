@@ -1,0 +1,6 @@
+    {
+        "name": "AtCoder",
+        "dockerComposeFile": "../docker-compose.yml",
+        "service": "atcoder",
+        "workspaceFolder": "/app"
+    }

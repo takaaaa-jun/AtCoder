@@ -1,0 +1,8 @@
+source /app/atcoder_utils.sh
+cd /app/src/atcoder/abc
+mkc abc300 # ABCの番号を指定
+---
+cptest # コンパイルしてテストを実行
+next # 次の問題に移動
+prev # 前の問題に戻る
+goto b # b問題に移動

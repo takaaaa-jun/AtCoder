@@ -1,0 +1,15 @@
+# Compiled binaries
+*.out
+*.exe
+*.o
+
+# Test directories and files
+test/
+tests/
+__pycache__/
+
+# System files
+.DS_Store
+
+# User-specific
+.vscode/
