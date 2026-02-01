@@ -1,0 +1,20 @@
+#include <bits/stdc++.h>
+#include <atcoder/all>
+using namespace std;
+using namespace atcoder;
+
+#define rep(i, n) for (int i = 0; i < (n); ++i)
+using ll = long long;
+using P = pair<int, int>;
+
+int main() {
+    int N;
+    cin >> N;
+    int k = N % 1000;
+    if (k == 0) {
+        cout << 0 << endl;
+    } else {
+        cout << 1000 - k << endl;
+    }
+    return 0;
+}
