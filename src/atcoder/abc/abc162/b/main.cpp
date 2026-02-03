@@ -8,18 +8,16 @@ using ll = long long;
 using P = pair<int, int>;
 
 int main() {
-    int K, A, B;
-    cin >> K >> A >> B;
-    bool ok = false;
-    for (int i = A; i <= B; ++i) {
-        if (i % K == 0) {
-            ok = true;
+    ll N;
+    cin >> N;
+    ll ans = 0;
+    for (ll i = 1; i <= N; i++) {
+        if (i % 3 == 0 || i % 5 == 0) {
+            continue;
+        } else {
+            ans += i;
         }
     }
-    if (ok) {
-        cout << "OK" << endl;
-    } else {
-        cout << "NG" << endl;
-    }
+    cout << ans << endl;
     return 0;
 }
