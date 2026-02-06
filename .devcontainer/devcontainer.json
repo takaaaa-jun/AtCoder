@@ -1,6 +1,18 @@
-    {
-        "name": "AtCoder",
-        "dockerComposeFile": "../docker-compose.yml",
-        "service": "atcoder",
-        "workspaceFolder": "/app"
+{
+    "name": "AtCoder C++ Env",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "atcoder",
+    "workspaceFolder": "/app/src/atcoder/abc",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "formulahendry.code-runner"
+            ],
+            "settings": {
+                "C_Cpp.default.cppStandard": "c++20"
+            }
+        }
     }
+}

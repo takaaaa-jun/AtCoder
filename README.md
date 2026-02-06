@@ -2,6 +2,16 @@
 
 ## 使い方
 
+### Dockerの起動
+```bash
+docker compose up -d
+```
+
+### Dockerの停止
+```bash
+docker compose down
+```
+
 ### 競技プログラミングの時に使用するコマンド
 ```bash
 source /app/atcoder_utils.sh
