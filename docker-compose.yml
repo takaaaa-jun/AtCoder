@@ -1,12 +1,13 @@
-version: '3.3'
-
 services:
-  atcoder:
-    build:
-      context: .
-      dockerfile: docker/atcoder/Dockerfile
+  atcoder-env:
+    # 現在のディレクトリにあるDockerfileを使ってビルドする
+    build: .
+    # コンテナ名（わかりやすく固定）
     container_name: atcoder
-    stdin_open: true
-    tty: true
+    # Windowsのフォルダをコンテナ内の /app に同期する
     volumes:
-      - ./:/app
+      - .:/app
+    # コンテナを起動しっぱなしにする設定
+    tty: true
+    # 再起動設定（PC再起動時などは手動でupするなら "no" でOK）
+    restart: "no"
