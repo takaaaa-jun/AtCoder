@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     wget \
+    expect \
     time \
     tzdata \
     tree \
@@ -30,6 +31,7 @@ ENV CPLUS_INCLUDE_PATH=/lib/ac-library
 
 # atcoder-cli (acc) のインストール
 RUN npm install -g atcoder-cli
+RUN acc config default-task-choice all
 
 # online-judge-tools (oj) のインストール
 # Debian Bookworm以降は --break-system-packages が必要

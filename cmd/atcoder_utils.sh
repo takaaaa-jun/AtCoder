@@ -10,23 +10,34 @@ CXX_FLAGS="-std=c++20 -DLOCAL"
 
 
 _open_editor() {
+    local file="${1:-main.cpp}"
     local cmd=""
+
+    # 1. Try to detect VS Code command support
     if command -v code &> /dev/null; then
         cmd="code"
     elif command -v agy &> /dev/null; then
         cmd="agy"
     elif [ -n "$VSCODE_GIT_ASKPASS_NODE" ]; then
-        # Try to derive path from VSCODE env
-        # VSCODE_GIT_ASKPASS_NODE ends with .../bin/<commit>/node
-        # We need .../bin/<commit>/bin/remote-cli/agy
         local base_dir=$(dirname "$VSCODE_GIT_ASKPASS_NODE")
         if [ -x "$base_dir/bin/remote-cli/agy" ]; then
             cmd="$base_dir/bin/remote-cli/agy"
         fi
     fi
 
+    # 2. Execute or Fallback
     if [ -n "$cmd" ]; then
-        "$cmd" -r "${1:-main.cpp}" 2>/dev/null &
+        # VS Code Dev Container mode detected
+        "$cmd" -r "$file" 2>/dev/null &
+    else
+        # Login.bat (Raw Docker) mode detected
+        # Print a clickable link for VS Code terminal
+        # Convert absolute path to relative path from workspace root for cleaner display
+        local abs_path="$(pwd)/$file"
+        # Assuming /app is the workspace root
+        local rel_path="${abs_path#/app/}"
+        
+        echo -e "\n\033[1;36m[OPEN] Click to open: $rel_path\033[0m\n"
     fi
 }
 
