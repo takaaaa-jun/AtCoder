@@ -19,7 +19,10 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     wget \
+<<<<<<< HEAD
+=======
     expect \
+>>>>>>> 5b7ffeb1fc8e973773e44ebbb27813a670f54c28
     time \
     tzdata \
     tree \
@@ -31,16 +34,22 @@ ENV CPLUS_INCLUDE_PATH=/lib/ac-library
 
 # atcoder-cli (acc) のインストール
 RUN npm install -g atcoder-cli
+<<<<<<< HEAD
+=======
 RUN acc config default-task-choice all
+>>>>>>> 5b7ffeb1fc8e973773e44ebbb27813a670f54c28
 
 # online-judge-tools (oj) のインストール
 # Debian Bookworm以降は --break-system-packages が必要
 RUN pip3 install online-judge-tools --break-system-packages
 
+<<<<<<< HEAD
+=======
 # Bash起動時に自動的に abc ディレクトリに移動する設定
 # ディレクトリが存在しない場合（templateブランチなど）はエラーを出さずに /app のままにする
 RUN echo 'cd /app/src/atcoder/abc 2>/dev/null || true' >> /root/.bashrc
 RUN echo 'source /app/cmd/atcoder_utils.sh' >> /root/.bashrc
 
+>>>>>>> 5b7ffeb1fc8e973773e44ebbb27813a670f54c28
 # コンテナがすぐ終了しないように待機
 CMD ["tail", "-f", "/dev/null"]
