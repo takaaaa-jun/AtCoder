@@ -1,4 +1,4 @@
-# AtCoder Workflow Tools
+﻿# AtCoder Workflow Tools
 # Usage: source /app/atcoder_utils.sh
 
 # --- Configuration ---
