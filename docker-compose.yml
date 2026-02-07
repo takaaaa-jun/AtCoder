@@ -1,8 +1,8 @@
 services:
-  atcoder-env:
-    # 現在のディレクトリにあるDockerfileを使ってビルドする
-    build: .
-    # コンテナ名（わかりやすく固定）
+  atcoder:
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: atcoder
     # Windowsのフォルダをコンテナ内の /app に同期する
     volumes:
